@@ -1,0 +1,81 @@
+#include <SoftwareSerial.h>
+#include "DHT.h"
+
+// HC-05 Bluetooth module connections
+SoftwareSerial BTSerial(10, 11); // RX | TX for HC-05
+
+// PIR Sensor connections
+const int pirPin = 2;
+const int ledPin = 13; 
+bool motionDetected = false;
+
+// Sound Sensor connections
+const int soundSensorPin = A0; // Analog pin for sound sensor
+const int soundThreshold = 15; // Threshold for detecting crying sound, can be varied as per the requirement
+
+// DHT11 Sensor connections
+#define DHTPIN 3 
+#define DHTTYPE DHT11 
+DHT dht(DHTPIN, DHTTYPE);
+
+// Variables for sensor readings
+int soundLevel = 0;
+float humidity = 0.0;
+float temperature = 0.0;
+
+void setup() {
+  // Initialize serial communication
+  Serial.begin(9600);  
+  BTSerial.begin(9600); 
+  // Initialize PIR sensor
+  pinMode(pirPin, INPUT);
+  pinMode(ledPin, OUTPUT);
+
+  // Initialize DHT11 sensor
+  dht.begin();
+}
+
+void loop() {
+  // Read and process the PIR sensor
+  int pirState = digitalRead(pirPin);
+  if (pirState == HIGH) { // If motion is detected
+    if (!motionDetected) {
+      motionDetected = true;
+      digitalWrite(ledPin, HIGH); // Turn on LED
+      BTSerial.println("Motion Detected!");
+      Serial.println("Motion Detected!");
+    }
+  } else { // If no motion is detected
+    if (motionDetected) {
+      motionDetected = false;
+      digitalWrite(ledPin, LOW); // Turn off LED
+      BTSerial.println("No Motion");
+      Serial.println("No Motion");
+    }
+  }
+
+  // Read and process the sound sensor
+  soundLevel = analogRead(soundSensorPin);
+  if (soundLevel > soundThreshold) { // If sound level exceeds threshold
+    Serial.println("Baby is crying"); // Print message to Serial Monitor
+    BTSerial.println("Baby is crying"); // Send message via Bluetooth
+  }
+
+  // Read and process the DHT11 sensor
+  delay(2000); // Wait a few seconds between measurements
+  humidity = dht.readHumidity();
+  temperature = dht.readTemperature();
+
+  // Check if any reads failed and exit early
+ 
+
+ 
+  // Check if temperature is higher than typical baby body temperature (37°C)
+  if (temperature <26.0) {
+    Serial.println("Alert: Temperature is low!");
+    BTSerial.println("Alert: Temperature is low!");
+  }
+  
+ 
+  delay(500); // Short delay before the next reading
+}
